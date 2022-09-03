@@ -87,7 +87,7 @@ if __name__ == '__main__':
 
     args.add_argument('--use_cuda', type=bool, default=True)
     args.add_argument('--seed', type=int, default=777)
-    args.add_argument('--num_epochs', type=int, default=20)
+    args.add_argument('--num_epochs', type=int, default=10)
     args.add_argument('--batch_size', type=int, default=64)
     args.add_argument('--save_result_every', type=int, default=10)
     args.add_argument('--checkpoint_every', type=int, default=1)
@@ -142,6 +142,7 @@ if __name__ == '__main__':
     config = args.parse_args()
     warnings.filterwarnings('ignore')
 
+    # Random Seed
     random.seed(config.seed)
     np.random.seed(config.seed)
     torch.manual_seed(config.seed)
