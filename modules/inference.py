@@ -9,6 +9,7 @@ from torch import Tensor
 from modules.vocab import KoreanSpeechVocabulary
 from modules.data import load_audio
 from modules.model import DeepSpeech2
+from pyctcdecode import Alphabet, BeamSearchDecoderCTC, build_ctcdecoder
 
 
 def parse_audio(audio_path: str, del_silence: bool = False, audio_extension: str = 'pcm') -> Tensor:
@@ -31,13 +32,12 @@ def single_infer(model, audio_path):
     feature = parse_audio(audio_path, del_silence=True)
     input_length = torch.LongTensor([len(feature)])
     vocab = KoreanSpeechVocabulary(os.path.join(os.getcwd(), 'labels.csv'), output_unit='character')
-
+    decoder = build_ctcdecoder(labels=list(vocab.vocab_dict.keys()))
     if isinstance(model, nn.DataParallel):
         model = model.module
     model.eval()
-
     model.device = device
-    y_hats = model.recognize(feature.unsqueeze(0).to(device), input_length)
-    sentence = vocab.label_to_string(y_hats.cpu().detach().numpy())
+    y_hats = model(feature.unsqueeze(0).to(device), input_length)
+    sentence = decoder.decode_beams(y_hats[0][0].cpu().detach().numpy())[0][0].replace("<eos>","").replace("<blank>","")
 
-    return sentence
+    return [sentence] 
