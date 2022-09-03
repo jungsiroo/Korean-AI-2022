@@ -205,7 +205,7 @@ def split_dataset(config, transcripts_path: str, vocab: Vocabulary, valid_size=.
         valid_transcripts,
         vocab.sos_id, vocab.eos_id,
         config=config,
-        spec_augment=config.spec_augment,
+        spec_augment=False,
         dataset_path=config.dataset_path,
         audio_extension=config.audio_extension,
     )
