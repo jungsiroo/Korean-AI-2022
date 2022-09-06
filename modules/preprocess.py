@@ -114,7 +114,6 @@ def generate_character_script(data_df, labels_dest, config):
             f.write(f'{audio_path}\t{transcript}\t{char_id_transcript}\n')
             # print(f'{audio_path}\t{transcript}\t{char_id_transcript}')
 
-
 def preprocessing(transcripts_dest, labels_dest, config):
     transcript_df = pd.read_csv(transcripts_dest)
     generate_character_script(transcript_df, labels_dest, config)
