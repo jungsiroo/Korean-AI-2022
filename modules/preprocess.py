@@ -44,7 +44,7 @@ def bracket_filter(sentence, mode='phonetic'):
 def special_filter(sentence, mode='phonetic', replace=None):
     SENTENCE_MARK = ['?', '!', '.']
     NOISE = ['o', 'n', 'u', 'b', 'l']
-    EXCEPT = ['/', '+', '*', '-', '@', '$', '^', '&', '[', ']', '=', ':', ';', ',']
+    EXCEPT = ['/', '+', '*', '-', '@', '$', '^', '[', ']', '=', ':', ';', ',']
 
     new_sentence = str()
     for idx, ch in enumerate(sentence):
@@ -66,8 +66,9 @@ def special_filter(sentence, mode='phonetic', replace=None):
         elif ch not in EXCEPT:
             new_sentence += ch
 
-    pattern = re.compile(r'\s\s+')
-    new_sentence = re.sub(pattern, ' ', new_sentence.strip())
+    pattern = re.compile(r'&[\w-]*&|\s\s+|{laughing}')
+    new_sentence = re.sub(pattern, '', new_sentence.strip())
+
     return new_sentence
 
 
@@ -112,7 +113,7 @@ def generate_character_script(data_df, labels_dest, config):
             transcript = sentence_filter(transcript, config.pre_mode)
             char_id_transcript = sentence_to_target(transcript, char2id)
             f.write(f'{audio_path}\t{transcript}\t{char_id_transcript}\n')
-            # print(f'{audio_path}\t{transcript}\t{char_id_transcript}')
+            #print(f'{audio_path}\t{transcript}\t{char_id_transcript}')
 
 
 def preprocessing(transcripts_dest, labels_dest, config):
