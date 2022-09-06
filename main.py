@@ -82,6 +82,14 @@ def inference(path, model, **kwargs):
         )
     return sorted(results, key=lambda x: x['filename'])
 
+def seed_fix(seed): #시드 고정 함수
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    np.random.seed(seed)
+    random.seed(seed)
 
 def run(config):
     device = 'cuda' if config.use_cuda == True else 'cpu'
@@ -185,10 +193,17 @@ def run(config):
             print(f'[INFO] epoch {epoch} is done')
         print('[INFO] train process is done')
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 49b11b0 (devide arguments function)
 if __name__ == '__main__':
     config = get_args()
     warnings.filterwarnings('ignore')
 
     seed_fix(config.seed)
+<<<<<<< HEAD
     run(config)
+=======
+    run(config)   
+>>>>>>> 49b11b0 (devide arguments function)
