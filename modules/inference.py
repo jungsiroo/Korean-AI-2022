@@ -37,7 +37,7 @@ def single_infer(model, audio_path):
     model.eval()
 
     model.device = device
-    y_hats = model.recognize(feature.unsqueeze(0).to(device), input_length)
+    y_hats = model(feature.unsqueeze(0).to(device), input_length)[:,:-1,:]
     sentence = vocab.label_to_string(y_hats.cpu().detach().numpy())
 
     return sentence
