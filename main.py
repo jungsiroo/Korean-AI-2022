@@ -107,8 +107,8 @@ def run(config):
         preprocessing(label_path, os.getcwd(), config)
         train_dataset, valid_dataset = split_dataset(config, os.path.join(os.getcwd(), 'transcripts.txt'), vocab)
 
-        lr_scheduler = get_transformer_lr_scheduler(config, optimizer, math.ceil(len(train_dataset)//config.batch_size))
-        optimizer = ConformerOptimizer(optimizer, lr_scheduler, math.ceil(len(train_dataset)//config.batch_size)*config.num_epochs, config.max_grad_norm)
+        lr_scheduler = get_transformer_lr_scheduler(config, optimizer, math.ceil(len(train_dataset)//config.train_batch_size))
+        optimizer = ConformerOptimizer(optimizer, lr_scheduler, math.ceil(len(train_dataset)//config.train_batch_size)*config.num_epochs, config.max_grad_norm)
         criterion = get_conformer_criterion(config, vocab)
 
         num_epochs = config.num_epochs
@@ -123,7 +123,7 @@ def run(config):
 
             train_loader = DataLoader(
                 train_dataset,
-                batch_size=config.batch_size,
+                batch_size=config.train_batch_size,
                 shuffle=True,
                 collate_fn=collate_fn,
                 num_workers=config.num_workers
@@ -147,7 +147,7 @@ def run(config):
 
             valid_loader = DataLoader(
                 valid_dataset,
-                batch_size=config.batch_size,
+                batch_size=config.valid_batch_size,
                 shuffle=True,
                 collate_fn=collate_fn,
                 num_workers=config.num_workers

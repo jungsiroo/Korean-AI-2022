@@ -11,8 +11,9 @@ def get_args():
 
     args.add_argument('--use_cuda', type=bool, default=True)
     args.add_argument('--seed', type=int, default=777)
-    args.add_argument('--num_epochs', type=int, default=20)
-    args.add_argument('--batch_size', type=int, default=16)
+    args.add_argument('--num_epochs', type=int, default=30)
+    args.add_argument('--train_batch_size', type=int, default=48)
+    args.add_argument('--valid_batch_size', type=int, default=4)
     args.add_argument('--save_result_every', type=int, default=10)
     args.add_argument('--checkpoint_every', type=int, default=1)
     args.add_argument('--print_every', type=int, default=200)
