@@ -40,7 +40,7 @@ def get_args():
     args.add_argument('--num_encoder_layers', type=int, default=16)
     args.add_argument('--num_decoder_layers', type=int, default=1)
     args.add_argument('--hidden_dim', type=int, default=1024)
-    args.add_argument('--rnn_type', type=str, default='gru')
+    args.add_argument('--rnn_type', type=str, default='lstm')
     args.add_argument('--max_len', type=int, default=400)
     args.add_argument('--activation', type=str, default='hardtanh')
     args.add_argument('--teacher_forcing_ratio', type=float, default=1.0)
