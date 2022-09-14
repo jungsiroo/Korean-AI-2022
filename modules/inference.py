@@ -7,7 +7,7 @@ import torch.nn as nn
 from torch import Tensor
 
 from modules.vocab import KoreanSpeechVocabulary
-from modules.data import load_audio
+from modules.data_t import load_audio
 from modules.model import DeepSpeech2
 
 

@@ -1,4 +1,5 @@
 import argparse
+import math
 
 def get_args():
     args = argparse.ArgumentParser()
@@ -12,7 +13,7 @@ def get_args():
     args.add_argument('--use_cuda', type=bool, default=True)
     args.add_argument('--seed', type=int, default=777)
     args.add_argument('--num_epochs', type=int, default=20)
-    args.add_argument('--batch_size', type=int, default=64)
+    args.add_argument('--batch_size', type=int, default=4)
     args.add_argument('--save_result_every', type=int, default=10)
     args.add_argument('--checkpoint_every', type=int, default=1)
     args.add_argument('--print_every', type=int, default=50)
@@ -21,22 +22,21 @@ def get_args():
     args.add_argument('--num_workers', type=int, default=8)
     args.add_argument('--num_threads', type=int, default=16)
     args.add_argument('--init_lr', type=float, default=1e-06)
-    args.add_argument('--final_lr', type=float, default=1e-06)
-    args.add_argument('--peak_lr', type=float, default=1e-04)
+    args.add_argument('--final_lr', type=float, default=1e-07)
+    args.add_argument('--peak_lr', type=float, default=0.05/math.sqrt(256))
     args.add_argument('--init_lr_scale', type=float, default=1e-02)
-    args.add_argument('--final_lr_scale', type=float, default=5e-02)
+    args.add_argument('--final_lr_scale', type=float, default=0.001)
     args.add_argument('--max_grad_norm', type=int, default=400)
-    args.add_argument('--warmup_steps', type=int, default=1000)
-    args.add_argument('--weight_decay', type=float, default=1e-05)
+    args.add_argument('--warmup_steps', type=int, default=10000)
+    # args.add_argument('--weight_decay', type=float, default=1e-05)
     args.add_argument('--reduction', type=str, default='mean')
     args.add_argument('--optimizer', type=str, default='adam')
-    args.add_argument('--lr_scheduler', type=str, default='tri_stage_lr_scheduler')
+    args.add_argument('--lr_scheduler', type=str, default='transformer_lr_scheduler')
     args.add_argument('--total_steps', type=int, default=200000)
 
-    args.add_argument('--architecture', type=str, default='deepspeech2')
+    args.add_argument('--architecture', type=str, default='conformer')
     args.add_argument('--use_bidirectional', type=bool, default=True)
     args.add_argument('--dropout', type=float, default=3e-01)
-    args.add_argument('--num_encoder_layers', type=int, default=3)
     args.add_argument('--hidden_dim', type=int, default=1024)
     args.add_argument('--rnn_type', type=str, default='gru')
     args.add_argument('--max_len', type=int, default=400)
@@ -62,6 +62,29 @@ def get_args():
     args.add_argument('--input_reverse', type=bool, default=False)
 
     args.add_argument('--pre_mode', type=str, default="phonetic")
+    args.add_argument('--decoder_dropout_p', type=float, default=0.1)
+    args.add_argument('--feed_forward_expansion_factor', type=int, default=4)
+    args.add_argument('--conv_expansion_factor', type=int, default=2)
+    args.add_argument('--input_dropout_p', type=float, default=0.1)
+    args.add_argument('--feed_forward_dropout_p', type=float, default=0.1)
+    args.add_argument('--attention_dropout_p', type=float, default=0.1)
+    args.add_argument('--conv_dropout_p', type=float, default=0.1)
+    args.add_argument('--conv_kernel_size', type=int, default=31)
+    args.add_argument('--half_step_residual', type=bool, default=True)
+    args.add_argument('--decoder_rnn_type', type=str, default="lstm")
+    args.add_argument('--decoder', type=str, default='')
+
+    args.add_argument('--optimizer_betas', type=tuple, default=(0.9, 0.98))
+    args.add_argument('--optimizer_eps', type=float, default=1e-9)
+    args.add_argument('--weight_decay', type=float, default=1e-6)
+
+    args.add_argument('--encoder_dim', type=int, default=256)
+    args.add_argument('--decoder_dim', type=int, default=640)
+    args.add_argument('--num_encoder_layers', type=int, default=17)
+    args.add_argument('--num_decoder_layers', type=int, default=1)
+    args.add_argument('--num_attention_heads', type=int, default=4)
+    args.add_argument('--decay_steps', type=int, default=80000)
+
 
     config = args.parse_args()
     return config

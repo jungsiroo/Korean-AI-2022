@@ -25,7 +25,12 @@ def trainer(mode, config, dataloader, optimizer, model, criterion, metric, train
         target_lengths = torch.as_tensor(target_lengths).to(device)
         model = model.to(device)
 
-        outputs, output_lengths = model(inputs, input_lengths)
+        outputs, output_lengths = model(inputs, input_lengths, targets, target_lengths)
+
+        # print("@@@@@@@@@@@@@@@@@@@@@@")
+        # print(outputs,output_lengths)
+        # print("@@@@@@@@@@@@@@@@@@@@@@")
+
 
         loss = criterion(
             outputs.transpose(0, 1),

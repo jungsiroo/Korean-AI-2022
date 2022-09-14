@@ -11,7 +11,7 @@ from glob import glob
 import numpy as np
 
 from modules.preprocess import preprocessing
-from modules.trainer import trainer
+from modules.trainer_t import trainer
 from modules.utils import (
     get_optimizer,
     get_criterion,
@@ -25,7 +25,7 @@ from modules.audio import (
 )
 from modules.model import build_model
 from modules.vocab import KoreanSpeechVocabulary
-from modules.data import split_dataset, collate_fn
+from modules.data_t import split_dataset, collate_fn
 from modules.utils import Optimizer
 from modules.metrics import get_metric
 from modules.inference import single_infer
