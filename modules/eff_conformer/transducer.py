@@ -17,37 +17,37 @@ import torch
 import torch.nn as nn
 
 # Base Model
-from models.model import Model, init_vn
+from modules.eff_conformer.model import Model, init_vn
 
 # Encoders
-from models.encoders import (
+from modules.eff_conformer.encoders import (
     ConformerEncoder
 )
 
 # Decoders
-from models.decoders import (
+from modules.eff_conformer.encoders import (
     RnnDecoder,
     TransformerDecoder,
     ConformerDecoder
 )
 
 # Joint Network
-from models.joint_networks import (
+from modules.eff_conformer.joint_networks import (
     JointNetwork
 )
 
 # Language Model
-from models.lm import (
+from modules.eff_conformer.lm import (
     LanguageModel
 )
 
 # Losses
-from models.losses import (
+from modules.eff_conformer.losses import (
     LossRNNT
 )
 
 # Ngram
-import kenlm
+# import kenlm
 
 class Transducer(Model):
 

@@ -17,16 +17,16 @@ import torch
 import torch.nn as nn
 
 # Base Model
-from models.model import Model
+from modules.eff_conformer.model import Model
 
 # Encoders
-from models.encoders import (
+from modules.eff_conformer.encoders import (
     ConformerEncoder,
     ConformerEncoderInterCTC
 )
 
 # Losses
-from models.losses import (
+from modules.eff_conformer.losses import (
     LossCTC, 
     LossInterCTC
 )
@@ -53,6 +53,8 @@ class ModelCTC(Model):
 
         # Compile
         self.compile(training_params)
+
+        self.optimizer = self.get_optimizer()
 
     def forward(self, batch):
 

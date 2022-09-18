@@ -18,7 +18,7 @@ import torch.nn as nn
 import torchaudio
 
 # Attentions
-from models.attentions import (
+from modules.eff_conformer.attentions import (
     # Abs Attentions
     MultiHeadAttention,
     GroupedMultiHeadAttention,
@@ -35,7 +35,7 @@ from models.attentions import (
 )
 
 # Layers
-from models.layers import (
+from modules.eff_conformer.layers import (
     Linear,
     Conv1d,
     Transpose,
@@ -43,7 +43,7 @@ from models.layers import (
 )
 
 # Activations
-from models.activations import (
+from modules.eff_conformer.activations import (
     Swish,
     Glu
 )

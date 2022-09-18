@@ -16,13 +16,12 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.tensorboard import SummaryWriter
 
 # Sentencepiece
 import sentencepiece as spm
 
 # Schedulers
-from models.schedules import *
+from modules.eff_conformer.schedules import *
 
 # Other
 from tqdm import tqdm
@@ -149,6 +148,9 @@ class Model(nn.Module):
         # Init LR
         self.scheduler.step()
 
+    def get_optimizer(self):
+        return self.optimizer
+
     def num_params(self):
 
         return sum([p.numel() for p in self.parameters()])
@@ -188,12 +190,7 @@ class Model(nn.Module):
              # Create Callbacks
             if not os.path.isdir(callback_path):
                 os.makedirs(callback_path)
-
-            # Create Writer
-            writer = SummaryWriter(callback_path + "logs")
-
         else:
-
             writer = None
 
         # Sample Synaptic Noise

@@ -17,21 +17,21 @@ import torch
 import torch.nn as nn
 
 # Base Model
-from models.model import Model
+from modules.eff_conformer.model import Model
 
 # Encoders
-from models.encoders import (
+from modules.eff_conformer.encoders import (
     ConformerEncoder
 )
 
 # Decoders
-from models.decoders import (
+from modules.eff_conformer.decoders import (
     ConformerCrossDecoder,
     TransformerCrossDecoder
 )
 
 # Losses
-from models.losses import (
+from modules.eff_conformer.losses import (
     LossCE
 )
 
