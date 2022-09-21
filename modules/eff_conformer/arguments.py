@@ -1,8 +1,8 @@
 import argparse
-from email.policy import default
+import torch
 
 def get_args():
-    args = argparse.Argumentargs()
+    args = argparse.ArgumentParser()
 
     # DONOTCHANGE: They are reserved for nsml
     args.add_argument('--mode', type=str, default='train', help='submit일때 해당값이 test로 설정됩니다.')
@@ -71,7 +71,7 @@ def get_args():
     default="modules/eff_conformer/configs/EfficientConformerCTCSmall.json",
     help="Json configuration file containing model hyperparameters")
 
-    args.add_argument("-i", "--initial_epoch",type=str,default=None,
+    args.add_argument("-i", "--initial_epoch",type=int,default=0,
     help="Load model from checkpoint")
 
     args.add_argument("--initial_epoch_lm",type=str,default=None,
@@ -83,6 +83,7 @@ def get_args():
     args.add_argument("-p", "--prepare_dataset",action="store_true",
     help="Prepare dataset for training")
 
+    args.add_argument("--world_size",type=int,default=torch.cuda.device_count(),help="Number of available GPUs")
     args.add_argument("--create_tokenizer",action="store_false",help="Create model tokenizer")
     args.add_argument("--verbose_val",action="store_true",help="Evaluation verbose")
     args.add_argument("--val_steps",type=int,default=None,help="Number of validation steps")

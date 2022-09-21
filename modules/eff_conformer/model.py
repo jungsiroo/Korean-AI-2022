@@ -190,8 +190,6 @@ class Model(nn.Module):
              # Create Callbacks
             if not os.path.isdir(callback_path):
                 os.makedirs(callback_path)
-        else:
-            writer = None
 
         # Sample Synaptic Noise
         if self.vn_start_step is not None:
@@ -221,9 +219,6 @@ class Model(nn.Module):
 
                 # Epoch training
                 for step, batch in enumerate(epoch_iterator):
-
-                    # Load batch to model device
-                    batch = [elt.to(device) for elt in batch]
 
                     # Encoder Frozen Steps
                     if self.encoder_frozen_steps:
@@ -265,11 +260,6 @@ class Model(nn.Module):
                     if self.rank == 0:
                         epoch_iterator.set_description("model step: {} - mean loss {:.4f} - batch loss: {:.4f} - learning rate: {:.6f}".format(self.scheduler.model_step, epoch_loss / (step + 1), loss_mini, self.optimizer.param_groups[0]['lr']))
 
-                    # Logs Step
-                    if self.rank == 0 and writer is not None and (step + 1) % 10 == 0:
-                        writer.add_scalar('Training/Loss', loss_mini, self.scheduler.model_step)
-                        writer.add_scalar('Training/LearningRate',  self.optimizer.param_groups[0]['lr'], self.scheduler.model_step)
-
                     # Step per Epoch
                     if steps_per_epoch is not None:
                         if step + 1 >= steps_per_epoch * accumulated_steps:
@@ -280,10 +270,6 @@ class Model(nn.Module):
                     torch.distributed.barrier()
                     torch.distributed.all_reduce(epoch_loss)
                     epoch_loss /= torch.distributed.get_world_size()
-
-                # Logs Epoch
-                if self.rank == 0 and writer is not None:
-                    writer.add_scalar('Training/MeanLoss', epoch_loss / (steps_per_epoch * accumulated_steps if steps_per_epoch is not None else dataset_train.__len__()),  epoch + 1)
 
                 # Validation
                 if (epoch + 1) % val_period == 0:
@@ -303,12 +289,6 @@ class Model(nn.Module):
                                 if self.rank == 0:
                                     print("{} wer : {:.2f}% - loss : {:.4f}".format(dataset_name, 100 * wer, val_loss))
 
-                                # Logs Validation
-                                if self.rank == 0 and writer is not None:
-                                    writer.add_scalar('Validation/WER/{}'.format(dataset_name), 100 * wer, epoch + 1)
-                                    writer.add_scalar('Validation/MeanLoss/{}'.format(dataset_name), val_loss, epoch + 1)
-                                    writer.add_text('Validation/Predictions/{}'.format(dataset_name), "GroundTruth : " + truths[0] + " / Prediction : " + preds[0], epoch + 1)
-
                         else:
 
                             # Evaluate
@@ -318,11 +298,6 @@ class Model(nn.Module):
                             if self.rank == 0:
                                 print("Val wer : {:.2f}% - Val loss : {:.4f}".format(100 * wer, val_loss))
 
-                            # Logs Validation
-                            if self.rank == 0 and writer is not None:
-                                writer.add_scalar('Validation/WER', 100 * wer, epoch + 1)
-                                writer.add_scalar('Validation/MeanLoss', val_loss, epoch + 1)
-                                writer.add_text('Validation/Predictions', "GroundTruth : " + truths[0] + " / Prediction : " + preds[0], epoch + 1)
 
                 # Saving Checkpoint
                 if (epoch + 1) % saving_period == 0:
@@ -334,9 +309,6 @@ class Model(nn.Module):
 
             if self.is_distributed:
                 torch.distributed.destroy_process_group()
-
-            if self.rank == 0 and writer is not None:
-                writer.add_text('Exceptions', str(e))
 
             raise e
 
@@ -409,11 +381,7 @@ class Model(nn.Module):
 
             # Sequence Prediction
             with torch.no_grad():
-
-                if beam_size > 1:
-                    outputs_pred = self.beam_search_decoding(batch[0], batch[2], beam_size)
-                else:
-                    outputs_pred = self.gready_search_decoding(batch[0], batch[2])
+                outputs_pred = self.gready_search_decoding(batch[0], batch[2])
 
             # Sequence Truth
             outputs_true = self.tokenizer.decode(batch[1].tolist())

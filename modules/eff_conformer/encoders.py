@@ -17,12 +17,12 @@ import torch
 import torch.nn as nn
 
 # Blocks
-from models.blocks import (
+from modules.eff_conformer.blocks import (
     ConformerBlock
 )
 
 # Modules
-from models.modules import (
+from modules.eff_conformer.modules import (
     AudioPreprocessing,
     SpecAugment,
     Conv1dSubsampling,
@@ -32,7 +32,7 @@ from models.modules import (
 )
 
 # Positional Encodings and Masks
-from models.attentions import (
+from modules.eff_conformer.attentions import (
     SinusoidalPositionalEncoding,
     StreamingMask
 )

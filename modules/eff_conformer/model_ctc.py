@@ -32,7 +32,7 @@ from modules.eff_conformer.losses import (
 )
 
 # CTC Decode Beam Search
-from ctcdecode import CTCBeamDecoder
+# from ctcdecode import CTCBeamDecoder
 
 class ModelCTC(Model):
 
@@ -59,7 +59,7 @@ class ModelCTC(Model):
     def forward(self, batch):
 
         # Unpack Batch
-        x, _, x_len, _ = batch
+        x, x_len = batch
 
         # Forward Encoder (B, Taud) -> (B, T, Denc)
         logits, logits_len, attentions = self.encoder(x, x_len)
@@ -137,50 +137,50 @@ class ModelCTC(Model):
         # Decode Sequences
         return self.tokenizer.decode(batch_pred_list)
 
-    def beam_search_decoding(self, x, x_len, beam_size=None):
+    # def beam_search_decoding(self, x, x_len, beam_size=None):
 
-        # Overwrite beam size
-        if beam_size is None:
-            beam_size = self.beam_size
+    #     # Overwrite beam size
+    #     if beam_size is None:
+    #         beam_size = self.beam_size
 
-        # Beam Search Decoder
-        decoder = CTCBeamDecoder(
-            [chr(idx + self.ngram_offset) for idx in range(self.tokenizer.vocab_size())],
-            model_path=self.ngram_path,
-            alpha=self.ngram_alpha,
-            beta=self.ngram_beta,
-            cutoff_top_n=self.tokenizer.vocab_size(),
-            cutoff_prob=1.0,
-            beam_width=beam_size,
-            num_processes=8,
-            blank_id=0,
-            log_probs_input=True
-        )
+    #     # Beam Search Decoder
+    #     decoder = CTCBeamDecoder(
+    #         [chr(idx + self.ngram_offset) for idx in range(self.tokenizer.vocab_size())],
+    #         model_path=self.ngram_path,
+    #         alpha=self.ngram_alpha,
+    #         beta=self.ngram_beta,
+    #         cutoff_top_n=self.tokenizer.vocab_size(),
+    #         cutoff_prob=1.0,
+    #         beam_width=beam_size,
+    #         num_processes=8,
+    #         blank_id=0,
+    #         log_probs_input=True
+    #     )
 
-        # Forward Encoder (B, Taud) -> (B, T, Denc)
-        logits, logits_len = self.encoder(x, x_len)[:2]
+    #     # Forward Encoder (B, Taud) -> (B, T, Denc)
+    #     logits, logits_len = self.encoder(x, x_len)[:2]
 
-        # FC Layer (B, T, Denc) -> (B, T, V)
-        logits = self.fc(logits)
+    #     # FC Layer (B, T, Denc) -> (B, T, V)
+    #     logits = self.fc(logits)
 
-        # Apply Temperature
-        logits = logits / self.tmp
+    #     # Apply Temperature
+    #     logits = logits / self.tmp
 
-        # Softmax -> Log
-        logP = logits.softmax(dim=-1).log()
+    #     # Softmax -> Log
+    #     logP = logits.softmax(dim=-1).log()
 
-        # Beam Search Decoding
-        beam_results, beam_scores, timesteps, out_lens = decoder.decode(logP, logits_len)
+    #     # Beam Search Decoding
+    #     beam_results, beam_scores, timesteps, out_lens = decoder.decode(logP, logits_len)
 
-        # Batch Pred List
-        batch_pred_list = []
+    #     # Batch Pred List
+    #     batch_pred_list = []
 
-        # Batch loop
-        for b in range(logits.size(0)):
-            batch_pred_list.append(beam_results[b][0][:out_lens[b][0]].tolist())
+    #     # Batch loop
+    #     for b in range(logits.size(0)):
+    #         batch_pred_list.append(beam_results[b][0][:out_lens[b][0]].tolist())
 
-        # Decode Sequences
-        return self.tokenizer.decode(batch_pred_list)
+    #     # Decode Sequences
+    #     return self.tokenizer.decode(batch_pred_list)
 
 class InterCTC(ModelCTC):
 

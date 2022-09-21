@@ -17,12 +17,12 @@ import torch
 import torch.nn as nn
 
 # Layers 
-from models.layers import (
+from modules.eff_conformer.layers import (
     Linear
 )
 
 # Activations Functions
-from models.activations import (
+from modules.eff_conformer.activations import (
     Swish
 )
 

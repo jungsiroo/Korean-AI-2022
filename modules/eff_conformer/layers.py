@@ -20,7 +20,7 @@ import torch._VF as _VF
 from torch.nn.modules.utils import _single, _pair
 
 # Activation Functions
-from models.activations import (
+from modules.eff_conformer.activations import (
     Swish
 )
 

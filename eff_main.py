@@ -10,18 +10,10 @@ import math
 from glob import glob
 import numpy as np
 
-from modules.preprocess import preprocessing
-from modules.audio import (
-    FilterBankConfig,
-    MelSpectrogramConfig,
-    MfccConfig,
-    SpectrogramConfig,
-)
-from modules.eff_conformer.functions import create_model
+
+from modules.eff_conformer.functions import *
+from modules.eff_conformer.utils.preprocessing import * 
 from modules.eff_conformer.arguments import get_args #custom
-from modules.vocab import KoreanSpeechVocabulary
-from modules.data import split_dataset, collate_fn
-from modules.metrics import get_metric
 from modules.inference import single_infer
 
 from torch.utils.data import DataLoader
@@ -77,7 +69,19 @@ def inference(path, model, **kwargs):
 
 
 def run(args):
-    device = 'cuda' if args.use_cuda == True else 'cpu'
+
+    # Distributed Computing
+    if args.distributed:
+        torch.cuda.set_device(args.rank)
+        torch.distributed.init_process_group(
+            backend='nccl', init_method='env://', 
+            world_size=args.world_size, rank=args.rank
+        )
+    
+    # Device
+    device = torch.device("cuda:" + str(args.rank) if torch.cuda.is_available() and not args.cpu else "cpu")
+    print("Device:", device)
+
     if hasattr(args, "num_threads") and int(args.num_threads) > 0:
         torch.set_num_threads(args.num_threads)
 
@@ -85,26 +89,51 @@ def run(args):
     with open(args.config_file) as json_config:
         config = json.load(json_config)
 
-    # Model
+    # Create Tokenizer
+    if args.create_tokenizer:
+        if args.rank == 0:
+            print("Creating Tokenizer")
+            create_tokenizer(config["training_params"], config["tokenizer_params"])
+
+        if args.distributed:
+            torch.distributed.barrier()
+
+    # Create Model
     model = create_model(config).to(device)
-    vocab = KoreanSpeechVocabulary(os.path.join(os.getcwd(), 'labels.csv'), output_unit='character')
 
     bind_model(model, optimizer=model.optimizer)
 
-    metric = get_metric(metric_name='CER', vocab=vocab)
-
     # Summary
     model.summary(show_dict=args.show_dict)
+
+    # Distribute Strategy
+    if args.distributed:
+        if args.rank == 0:
+            print("Parallelize model on", args.world_size, "GPUs")
+        model.distribute_strategy(args.rank)
+    
+    # Parallel Strategy
+    if args.parallel and not args.distributed:
+        print("Parallelize model on", torch.cuda.device_count(), "GPUs")
+        model.parallel_strategy()
+
+    # Prepare Dataset
+    if args.prepare_dataset:
+
+        if args.rank == 0:
+            print("Preparing dataset")
+            prepare_dataset(config["training_params"], config["tokenizer_params"], model.tokenizer)
+
+        if args.distributed:
+            torch.distributed.barrier()
+
+    # Load Dataset
+    dataset_train, dataset_val = load_datasets(config["training_params"], config["tokenizer_params"], args)
 
     if args.pause:
         nsml.paused(scope=locals())
 
     if args.mode == 'train':
-
-        args.dataset_path = os.path.join(DATASET_PATH, 'train', 'train_data')
-        label_path = os.path.join(DATASET_PATH, 'train', 'train_label')
-        preprocessing(label_path, os.getcwd(), args)
-        train_dataset, valid_dataset = split_dataset(args, os.path.join(os.getcwd(), 'transcripts.txt'), vocab)
 
         model.fit(
             train_dataset, 
@@ -114,7 +143,7 @@ def run(args):
             verbose_val=args.verbose_val, 
             initial_epoch=int(args.initial_epoch), 
             callback_path=config["training_params"]["callback_path"], 
-            steps_per_epoch=args.steps_per_epoch,
+            steps_per_epoch=None,
             mixed_precision=config["training_params"]["mixed_precision"],
             accumulated_steps=config["training_params"]["accumulated_steps"],
             saving_period=args.saving_period,
@@ -131,14 +160,14 @@ def run(args):
                 print("Geady Search WER : {:.2f}%".format(100 * wer))
         
         # Beam Search Evaluation
-        else:
+        # else:
 
-            if args.rank == 0:
-                print("Beam Search Evaluation")
-            wer, _, _, _ = model.evaluate(valid_dataset, eval_steps=args.val_steps, verbose=args.verbose_val, beam_size=model.beam_size, eval_loss=False)
+        #     if args.rank == 0:
+        #         print("Beam Search Evaluation")
+        #     wer, _, _, _ = model.evaluate(valid_dataset, eval_steps=args.val_steps, verbose=args.verbose_val, beam_size=model.beam_size, eval_loss=False)
             
-            if args.rank == 0:
-                print("Beam Search WER : {:.2f}%".format(100 * wer)) 
+        #     if args.rank == 0:
+        #         print("Beam Search WER : {:.2f}%".format(100 * wer)) 
 
 if __name__ == '__main__':
     args = get_args()

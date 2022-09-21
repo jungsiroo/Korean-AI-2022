@@ -17,19 +17,19 @@ import torch
 import torch.nn as nn
 
 # Positional Encodings and Masks
-from models.attentions import (
+from modules.eff_conformer.attentions import (
     SinusoidalPositionalEncoding,
     StreamingMask
 )
 
 # Blocks
-from models.blocks import (
+from modules.eff_conformer.blocks import (
     TransformerBlock,
     ConformerBlock
 )
 
 # Layers
-from models.layers import (
+from modules.eff_conformer.layers import (
     Embedding,
     LSTM
 )
