@@ -25,8 +25,8 @@ from tqdm import tqdm
 
 # Librispeech 292.367 samples
 class AIHubDataset(torch.utils.data.Dataset): 
-    def __init__(self, dataset_path, training_params, tokenizer_params, split, args):
-        self.names = glob.glob(dataset_path + "*")
+    def __init__(self, dataset_list, training_params, tokenizer_params, split, args):
+        self.names = dataset_list 
         self.vocab_type = tokenizer_params["vocab_type"]
         self.vocab_size = str(tokenizer_params["vocab_size"])
         self.lm_mode = training_params.get("lm_mode", False)

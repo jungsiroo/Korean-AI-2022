@@ -80,9 +80,9 @@ def get_args():
     args.add_argument("--initial_epoch_encoder",type=str,default=None,
     help="Load model encoder from encoder checkpoint")
 
-    args.add_argument("-p", "--prepare_dataset",action="store_true",
+    args.add_argument("-p", "--prepare_dataset",action="store_false",
     help="Prepare dataset for training")
-
+    args.add_argument("-d", "--distributed", action="store_true",)
     args.add_argument("--world_size",type=int,default=torch.cuda.device_count(),help="Number of available GPUs")
     args.add_argument("--create_tokenizer",action="store_false",help="Create model tokenizer")
     args.add_argument("--verbose_val",action="store_true",help="Evaluation verbose")
@@ -93,12 +93,12 @@ def get_args():
     args.add_argument("--swa_epochs_list", nargs="+", default=None, help="List of checkpoints epochs for swa")
     args.add_argument("--swa_type",type=str, default="equal", 
     help="Stochastic weight averaging type (equal/exp)")
-    args.add_argument("--parallel",action="store_true",help="Parallelize model using data parallelization")
+    args.add_argument("--parallel",action="store_false",help="Parallelize model using data parallelization")
     args.add_argument("--rnnt_max_consec_dec_steps", type=int,default=None,
     help="Number of maximum consecutive transducer decoder steps during inference")
     args.add_argument("--eval_loss", action="store_true", 
     help="Compute evaluation loss during evaluation")
-    args.add_argument("--gready", action="store_true", help="Proceed to a gready search evaluation")
+    args.add_argument("--gready", action="store_false", help="Proceed to a gready search evaluation")
     args.add_argument("--saving_period", type=int, default=1, help="Model saving every 'n' epochs")
     args.add_argument("--val_period", type=int, default=1, help="Model validation every 'n' epochs")
     args.add_argument("--profiler", action="store_true",help="Enable eval time profiler")

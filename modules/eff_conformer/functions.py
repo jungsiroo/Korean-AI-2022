@@ -30,6 +30,8 @@ from modules.eff_conformer.utils.preprocessing import (
     collate_fn_pad
 )
 
+import glob
+
 def create_model(config):
 
     if config["model_type"] == "CTC":
@@ -63,8 +65,13 @@ def load_datasets(training_params, tokenizer_params, args):
     if args.rank == 0:
         print("Loading training dataset : {} {}".format(training_params["training_dataset"], "For Training"))
 
+    train_path = glob.glob(f"/app/datasets/train/*")
+    pivot = int(len(train_path)*0.8)
+    train_data = train_path[:pivot]
+    valid_data = train_path[pivot:]
+
     dataset_train =  AIHubDataset(
-        f"{DATASET_PATH}/train/train_data/",
+        train_data,
         training_params, 
         tokenizer_params, 
         "train",
@@ -81,57 +88,25 @@ def load_datasets(training_params, tokenizer_params, args):
     if args.rank == 0:
         print("Loaded :", dataset_train.dataset.__len__(), "samples", "/", dataset_train.__len__(), "batches")
 
-    # Evaluation Dataset
-    if  evaluation_split:
+# One Evaluation dataset
+    if args.rank == 0:
+        print("Loading evaluation dataset : {} {}".format(training_params["evaluation_dataset"], "Validation"))
 
-        # Multiple Evaluation datasets
-        if isinstance(evaluation_split, list):
+    dataset_eval = AIHubDataset(
+        valid_data,
+        training_params, 
+        tokenizer_params, 
+        "valid",
+        args)
 
-            dataset_eval = {}
-
-            for split in evaluation_split:
-
-                if args.rank == 0:
-                    print("Loading evaluation dataset : {} {}".format(training_params["evaluation_dataset"], split))
-
-                dataset = AIHubDataset(
-                    training_params["evaluation_dataset_path"], 
-                    training_params, 
-                    tokenizer_params, 
-                    split, 
-                    args
-                )
-
-                if args.distributed:
-                    sampler = torch.utils.data.distributed.DistributedSampler(dataset, num_replicas=args.world_size,rank=args.rank)
-                else:
-                    sampler = None
-
-                dataset = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size_eval, shuffle=(not args.distributed), num_workers=args.num_workers, collate_fn=collate_fn_pad, sampler=sampler, pin_memory=False)
-                
-                if args.rank == 0:
-                    print("Loaded :", dataset.dataset.__len__(), "samples", "/", dataset.__len__(), "batches")
-
-                dataset_eval[split] = dataset
-
-        # One Evaluation dataset
-        else:
-
-            if args.rank == 0:
-                print("Loading evaluation dataset : {} {}".format(training_params["evaluation_dataset"], evaluation_split))
-
-            dataset_eval = AIHubDataset(training_params["evaluation_dataset_path"], training_params, tokenizer_params, evaluation_split, args)
-
-            if args.distributed:
-                sampler = torch.utils.data.distributed.DistributedSampler(dataset_eval, num_replicas=args.world_size,rank=args.rank)
-            else:
-                sampler = None
-
-            dataset_eval = torch.utils.data.DataLoader(dataset_eval, batch_size=args.batch_size_eval, shuffle=(not args.distributed), num_workers=args.num_workers, collate_fn=collate_fn_pad, sampler=sampler, pin_memory=False)
-            
-            if args.rank == 0:
-                print("Loaded :", dataset_eval.dataset.__len__(), "samples", "/", dataset_eval.__len__(), "batches")
+    if args.distributed:
+        sampler = torch.utils.data.distributed.DistributedSampler(dataset_eval, num_replicas=args.world_size,rank=args.rank)
     else:
-        dataset_eval = None
+        sampler = None
+
+    dataset_eval = torch.utils.data.DataLoader(dataset_eval, batch_size=args.batch_size_eval, shuffle=False, num_workers=args.num_workers, collate_fn=collate_fn_pad, sampler=sampler, pin_memory=False)
     
+    if args.rank == 0:
+        print("Loaded :", dataset_eval.dataset.__len__(), "samples", "/", dataset_eval.__len__(), "batches")
+
     return dataset_train, dataset_eval

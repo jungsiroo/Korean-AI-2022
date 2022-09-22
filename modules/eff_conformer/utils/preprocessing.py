@@ -14,6 +14,7 @@
 
 # PyTorch
 import torch
+from torch import Tensor
 import torchaudio
 
 # SentencePiece
@@ -25,6 +26,7 @@ import glob
 import re
 import os
 import pandas as pd
+from modules.audio.core import *
 
 import nsml
 from nsml import DATASET_PATH
@@ -109,7 +111,7 @@ def bracket_filter(sentence, mode='phonetic'):
 def special_filter(sentence, mode='phonetic', replace=None):
     SENTENCE_MARK = ['?', '!', '.']
     NOISE = ['o', 'n', 'u', 'b', 'l']
-    EXCEPT = ['/', '+', '*', '-', '@', '$', '^', '&', '[', ']', '=', ':', ';', ',']
+    EXCEPT = ['/', '+', '*', '-', '@', '$', '^', '[', ']', '=', ':', ';', ',']
 
     new_sentence = str()
     for idx, ch in enumerate(sentence):
@@ -131,21 +133,21 @@ def special_filter(sentence, mode='phonetic', replace=None):
         elif ch not in EXCEPT:
             new_sentence += ch
 
-    pattern = re.compile(r'\s\s+')
-    new_sentence = re.sub(pattern, ' ', new_sentence.strip())
+    pattern = re.compile(r'&[\w-]*&|\s\s+|{laughing}')
+    new_sentence = re.sub(pattern, '', new_sentence.strip())
     return new_sentence
 
 
-def sentence_filter(raw_sentence, mode, replace=None):
+def sentence_filter(raw_sentence, mode="phonetic", replace=None):
     return special_filter(bracket_filter(raw_sentence, mode), mode, replace)
 
-def create_tokenizer(training_params, tokenizer_params):
+def create_tokenizer(corpus_p, training_params, tokenizer_params):
 
     # AIHUB Dataset
     if training_params["training_dataset"] == "AIHub":
 
         # Corpus File Path
-        corpus_path = f"{DATASET_PATH}/train/corpus.txt"
+        corpus_path = f"{corpus_p}/corpus.txt"
         data_df = pd.read_csv(f"{DATASET_PATH}/train/train_label")
 
         # Create Corpus File
@@ -155,13 +157,17 @@ def create_tokenizer(training_params, tokenizer_params):
             for _, transcript in data_df.values:
                 corpus_file.write(sentence_filter(transcript)+"\n")
 
+        # Making train Folder
+        print("TRAIN FOLDER MAKING")
+        os.mkdir(f"{corpus_p}/train")
+
         # Train Tokenizer
         print("Training Tokenizer")
         spm.SentencePieceTrainer.train(
             input=corpus_path, 
-            model_prefix=f"{DATASET_PATH}/train/AIHub_bpe_256", 
+            model_prefix=f"{corpus_p}/train/AIHub_bpe_32000", 
             vocab_size=tokenizer_params["vocab_size"], 
-            character_coverage=1.0, 
+            character_coverage=0.9995, 
             model_type=tokenizer_params["vocab_type"], 
             bos_id=-1, eos_id=-1, unk_surface=""
         )
@@ -179,14 +185,9 @@ def prepare_dataset(training_params, tokenizer_params, tokenizer):
 
         data_df = pd.read_csv(f"{DATASET_PATH}/train/train_label")
 
-        for path, trans in data_df:
-            label_paths.append(f"{DATASET_PATH}/train/{path}.{tokenizer_params['vocab_type']}_{str(tokenizer_params['vocab_size'])}")
+        for path, trans in data_df.values:
+            label_paths.append(f"/app/datasets/train/{path}.{tokenizer_params['vocab_type']}_{str(tokenizer_params['vocab_size'])}")
             sentences.append(sentence_filter(trans))
-
-        # for file_path in glob.glob(training_params["training_dataset_path"] + "*/*/*/*.txt"):
-        #     for line in open(file_path, "r").readlines():
-        #         label_paths.append(file_path.replace(file_path.split("/")[-1], "") + line.split()[0] + "." + tokenizer_params["vocab_type"] + "_" + str(tokenizer_params["vocab_size"]))
-        #         sentences.append(line[len(line.split()[0]) + 1:-1].lower())
 
         # Save Labels and lengths
         print("Encoding sequences")
@@ -197,12 +198,18 @@ def prepare_dataset(training_params, tokenizer_params, tokenizer):
 
             # Tokenize and Save label
             label = torch.LongTensor(tokenizer.encode(sentence))
+            # print(f"SAVING ENCODE LABEL AT {label_path}")
             torch.save(label, label_path)
 
             # Save Audio length
-            audio_length = torchaudio.load(label_path.split(".")[0])[0].size(1)
-            torch.save(audio_length, label_path.split(".")[0] + ".pcm_len")
+            audio_path = label_path.split(".")[0].split("train/")[-1]
+            signal = load_audio(f"{DATASET_PATH}/train/train_data/{audio_path}")
+
+            # print(f"SIGNAL LEN : {len(signal)}")
+            # print(f"SAVING AUDIO LENGTH AT {label_path.split('.')[0]}.pcm_len")
+            torch.save(len(signal), label_path.split(".")[0] + ".pcm_len")
 
             # Save Label length
             label_length = label.size(0)
+            # print(f"SAVING LABEL LEN AT {label_path}_len")
             torch.save(label_length, label_path + "_len")

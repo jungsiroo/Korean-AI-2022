@@ -79,7 +79,7 @@ def run(args):
         )
     
     # Device
-    device = torch.device("cuda:" + str(args.rank) if torch.cuda.is_available() and not args.cpu else "cpu")
+    device = torch.device("cuda:" + str(args.rank) if torch.cuda.is_available() else "cpu")
     print("Device:", device)
 
     if hasattr(args, "num_threads") and int(args.num_threads) > 0:
@@ -93,7 +93,7 @@ def run(args):
     if args.create_tokenizer:
         if args.rank == 0:
             print("Creating Tokenizer")
-            create_tokenizer(config["training_params"], config["tokenizer_params"])
+            create_tokenizer(f"{os.getcwd()}/datasets", config["training_params"], config["tokenizer_params"])
 
         if args.distributed:
             torch.distributed.barrier()
@@ -119,7 +119,6 @@ def run(args):
 
     # Prepare Dataset
     if args.prepare_dataset:
-
         if args.rank == 0:
             print("Preparing dataset")
             prepare_dataset(config["training_params"], config["tokenizer_params"], model.tokenizer)
@@ -134,11 +133,10 @@ def run(args):
         nsml.paused(scope=locals())
 
     if args.mode == 'train':
-
         model.fit(
-            train_dataset, 
+            dataset_train, 
             config["training_params"]["epochs"], 
-            dataset_val=valid_dataset, 
+            dataset_val=dataset_val, 
             val_steps=args.val_steps, 
             verbose_val=args.verbose_val, 
             initial_epoch=int(args.initial_epoch), 
@@ -150,24 +148,18 @@ def run(args):
             val_period=args.val_period
         )
 
-        if args.gready or model.beam_size is None:
+    if args.gready or model.beam_size is None:
 
-            if args.rank == 0:
-                print("Gready Search Evaluation")
-            wer, _, _, _ = model.evaluate(valid_dataset, eval_steps=args.val_steps, verbose=args.verbose_val, beam_size=1, eval_loss=args.eval_loss)
-            
-            if args.rank == 0:
-                print("Geady Search WER : {:.2f}%".format(100 * wer))
+        if args.rank == 0:
+            print("Gready Search Evaluation")
+        wer, _, _, _ = model.evaluate(dataset_val, eval_steps=args.val_steps, verbose=args.verbose_val, beam_size=1, eval_loss=args.eval_loss)
         
-        # Beam Search Evaluation
-        # else:
+        if args.rank == 0:
+            print("Geady Search WER : {:.2f}%".format(100 * wer))
 
-        #     if args.rank == 0:
-        #         print("Beam Search Evaluation")
-        #     wer, _, _, _ = model.evaluate(valid_dataset, eval_steps=args.val_steps, verbose=args.verbose_val, beam_size=model.beam_size, eval_loss=False)
-            
-        #     if args.rank == 0:
-        #         print("Beam Search WER : {:.2f}%".format(100 * wer)) 
+    if args.distributed:
+        torch.distributed.destroy_process_group()
+        
 
 if __name__ == '__main__':
     args = get_args()
