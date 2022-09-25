@@ -137,6 +137,7 @@ class ConformerEncoder(nn.Module):
 
                 # Update Seq Lengths
                 if x_len is not None:
+                    # x_len = torch.floor_divide(x-len-1, block.stride)
                     x_len = torch.div(x_len - 1, block.stride, rounding_mode='floor') + 1
 
         return x, x_len, attentions
@@ -204,6 +205,7 @@ class ConformerEncoderInterCTC(ConformerEncoder):
 
                 # Update Seq Lengths
                 if x_len is not None:
+                    # x_len = torch.floor_divide(x_len-1, block.stride)
                     x_len = torch.div(x_len - 1, block.stride, rounding_mode='floor') + 1
 
             # Inter CTC Block

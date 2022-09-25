@@ -17,6 +17,7 @@ import torch
 
 # Models
 from modules.eff_conformer.model_ctc import ModelCTC, InterCTC
+from modules.eff_conformer.lm import LanguageModel
 
 # Datasets
 from modules.eff_conformer.utils.datasets import (
@@ -54,8 +55,16 @@ def create_model(config):
             name=config["model_name"]
         )
 
-    else:
+    elif config["model_type"] == "LM":
+        model = LanguageModel(
+            lm_params=config["lm_params"],
+            tokenizer_params=config["tokenizer_params"],
+            training_params=config["training_params"],
+            decoding_params=config["decoding_params"],
+            name=config["model_name"]
+        )
 
+    else:
         raise Exception("Unknown model type")
 
     return model
@@ -65,7 +74,7 @@ def load_datasets(training_params, tokenizer_params, args):
     if args.rank == 0:
         print("Loading training dataset : {} {}".format(training_params["training_dataset"], "For Training"))
 
-    train_path = glob.glob(f"/app/datasets/train/*")
+    train_path = glob.glob(f"/app/datasets/train/*.bpe_32000")
     pivot = int(len(train_path)*0.8)
     train_data = train_path[:pivot]
     valid_data = train_path[pivot:]
@@ -74,7 +83,7 @@ def load_datasets(training_params, tokenizer_params, args):
         train_data,
         training_params, 
         tokenizer_params, 
-        "train",
+        f"{DATASET_PATH}/train/train_data",
         args
     )
 
@@ -96,7 +105,7 @@ def load_datasets(training_params, tokenizer_params, args):
         valid_data,
         training_params, 
         tokenizer_params, 
-        "valid",
+        f"{DATASET_PATH}/train/train_data",
         args)
 
     if args.distributed:

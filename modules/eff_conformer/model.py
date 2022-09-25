@@ -13,6 +13,7 @@
 # limitations under the License.
 
 # PyTorch
+from pickletools import optimize
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -24,10 +25,14 @@ import sentencepiece as spm
 from modules.eff_conformer.schedules import *
 
 # Other
-from tqdm import tqdm
 import jiwer
+from tqdm import tqdm
+from jiwer.transformations import cer_default_transform
 import os
 import time
+
+import nsml
+from nsml import DATASET_PATH
 
 def sample_synaptic_noise(m, distributed):
 
@@ -172,10 +177,13 @@ class Model(nn.Module):
 
         self.is_parallel = True
 
-    def fit(self, dataset_train, epochs, dataset_val=None, val_steps=None, verbose_val=False, initial_epoch=0, callback_path=None, steps_per_epoch=None, mixed_precision=False, accumulated_steps=1, saving_period=1, val_period=1):
+    def fit(self, dataset_train, epochs, bind_fn, dataset_val=None, val_steps=None, verbose_val=False, initial_epoch=0, callback_path=None, steps_per_epoch=None, mixed_precision=False, accumulated_steps=1, saving_period=1, val_period=1):
 
         # Model Device
         device = next(self.parameters()).device
+
+        # Bind Model on NSML
+        bind_fn(self, optimizer=self.optimizer)
 
         # Mixed Precision Gradient Scaler
         scaler = torch.cuda.amp.GradScaler(enabled=mixed_precision)
@@ -196,9 +204,10 @@ class Model(nn.Module):
             if self.scheduler.model_step >= self.vn_start_step:
                 self.decoder.apply(lambda m: sample_synaptic_noise(m, self.is_distributed))
 
+        mean_loss = 0
+
         # Try Catch
         try:
-
             # Training Loop
             for epoch in range(initial_epoch, epochs):
 
@@ -219,6 +228,9 @@ class Model(nn.Module):
 
                 # Epoch training
                 for step, batch in enumerate(epoch_iterator):
+
+                    # Load batch to model device
+                    batch = [elt.to(device) for elt in batch]
 
                     # Encoder Frozen Steps
                     if self.encoder_frozen_steps:
@@ -260,6 +272,8 @@ class Model(nn.Module):
                     if self.rank == 0:
                         epoch_iterator.set_description("model step: {} - mean loss {:.4f} - batch loss: {:.4f} - learning rate: {:.6f}".format(self.scheduler.model_step, epoch_loss / (step + 1), loss_mini, self.optimizer.param_groups[0]['lr']))
 
+                    mean_loss = epoch_loss / (step + 1)
+                
                     # Step per Epoch
                     if steps_per_epoch is not None:
                         if step + 1 >= steps_per_epoch * accumulated_steps:
@@ -283,25 +297,38 @@ class Model(nn.Module):
                             for dataset_name, dataset in dataset_val.items():
 
                                 # Evaluate
-                                wer, truths, preds, val_loss = self.evaluate(dataset, val_steps, verbose_val, eval_loss=True)
+                                cer, truths, preds, val_loss = self.evaluate(dataset, val_steps, verbose_val, eval_loss=True)
 
-                                # Print wer
+                                # Print cer
                                 if self.rank == 0:
-                                    print("{} wer : {:.2f}% - loss : {:.4f}".format(dataset_name, 100 * wer, val_loss))
+                                    print("{} cer : {:.2f}% - loss : {:.4f}".format(dataset_name, 100 * cer, val_loss))
 
                         else:
 
                             # Evaluate
-                            wer, truths, preds, val_loss = self.evaluate(dataset_val, val_steps, verbose_val, eval_loss=True)
+                            cer, truths, preds, val_loss = self.evaluate(dataset_val, val_steps, verbose_val, eval_loss=True)
 
-                            # Print wer
+                            # Print cer
                             if self.rank == 0:
-                                print("Val wer : {:.2f}% - Val loss : {:.4f}".format(100 * wer, val_loss))
-
+                                print("Val cer : {:.2f}% - Val loss : {:.4f}".format(100 * cer, val_loss))
 
                 # Saving Checkpoint
                 if (epoch + 1) % saving_period == 0:
                     if callback_path and self.rank == 0:
+                        nsml.save(epoch)
+                        # print(f"mean loss : {mean_loss} type:{type(mean_loss)}")
+                        # print(f"val loss  : {val_loss} type : {type(val_loss)}")
+                        # print(f"step : {step}")
+
+                        nsml.report(
+                            summary=True,
+                            epoch=str(epoch),
+                            train_loss=mean_loss.item(),
+                            step=str((epoch+1)*len(epoch_iterator)),
+                            lr=str(self.optimizer.param_groups[0]['lr']), 
+                            val_loss=val_loss.item(),
+                            val_cer=cer
+                        )
                         self.save(callback_path + "checkpoints_" + str(epoch + 1) + ".ckpt")
 
         # Exception Handler
@@ -313,7 +340,6 @@ class Model(nn.Module):
             raise e
 
     def save(self, path, save_optimizer=True):
-        
         # Save Model Checkpoint
         torch.save({
             "model_state_dict": self.state_dict(),
@@ -364,8 +390,8 @@ class Model(nn.Module):
         speech_true = []
         speech_pred = []
 
-        # Total wer / loss
-        total_wer = 0.0
+        # Total cer / loss
+        total_cer = 0.0
         total_loss = 0.0
 
         # tqdm Iterator
@@ -381,14 +407,17 @@ class Model(nn.Module):
 
             # Sequence Prediction
             with torch.no_grad():
+                # if beam_size > 1:
+                #     outputs_pred = self.beam_search_decoding(batch[0], batch[2], beam_size)
+                # else:
                 outputs_pred = self.gready_search_decoding(batch[0], batch[2])
 
             # Sequence Truth
             outputs_true = self.tokenizer.decode(batch[1].tolist())
 
-            # Compute Batch wer and Update total wer
-            batch_wer = jiwer.wer(outputs_true, outputs_pred, standardize=True)
-            total_wer += batch_wer
+            # Compute Batch cer and Update total cer
+            batch_cer = jiwer.cer(outputs_true, outputs_pred, cer_default_transform)
+            total_cer += batch_cer
 
             # Update String lists
             speech_true += outputs_true
@@ -409,16 +438,16 @@ class Model(nn.Module):
             # Step print
             if self.rank == 0:
                 if eval_loss:
-                    eval_iterator.set_description("mean batch wer {:.2f}% - batch wer: {:.2f}% - mean loss {:.4f} - batch loss: {:.4f}".format(100 * total_wer / (step + 1), 100 * batch_wer, total_loss / (step + 1), batch_loss))
+                    eval_iterator.set_description("mean batch cer {:.2f}% - batch cer: {:.2f}% - mean loss {:.4f} - batch loss: {:.4f}".format(100 * total_cer / (step + 1), 100 * batch_cer, total_loss / (step + 1), batch_loss))
                 else:
-                    eval_iterator.set_description("mean batch wer {:.2f}% - batch wer: {:.2f}%".format(100 * total_wer / (step + 1), 100 * batch_wer))
+                    eval_iterator.set_description("mean batch cer {:.2f}% - batch cer: {:.2f}%".format(100 * total_cer / (step + 1), 100 * batch_cer))
 
             # Evaluation Steps
             if eval_steps:
                 if step + 1 >= eval_steps:
                     break
 
-        # Reduce wer among devices
+        # Reduce cer among devices
         if self.is_distributed:
 
             # Process Barrier
@@ -441,18 +470,18 @@ class Model(nn.Module):
                 torch.distributed.all_reduce(total_loss)
                 total_loss /= torch.distributed.get_world_size()
 
-        # Compute wer
-        if total_wer / (eval_steps if eval_steps is not None else dataset_eval.__len__()) > 1:
-            wer = 1
+        # Compute cer
+        if total_cer / (eval_steps if eval_steps is not None else dataset_eval.__len__()) > 1:
+            cer = 1
         else:
-            wer = jiwer.wer(speech_true, speech_pred, standardize=True)
+            cer = jiwer.cer(speech_true, speech_pred, cer_default_transform)
 
         # Compute loss
         if eval_loss:
             loss = total_loss / (eval_steps if eval_steps is not None else dataset_eval.__len__())
 
-        # Return word error rate, groundtruths and predictions
-        return wer, speech_true, speech_pred, loss if eval_loss else None
+        # Return character error rate, groundtruths and predictions
+        return cer, speech_true, speech_pred, loss if eval_loss else None
 
     def swa(self, dataset, callback_path, start_epoch, end_epoch, epochs_list=None, update_steps=None, swa_type="equal", swa_decay=0.9):
 

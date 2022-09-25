@@ -35,7 +35,7 @@
     "mean": -5.6501,
     "std": 4.228,
 
-    "spec_augment": true,
+    "spec_augment": false,
     "mF": 2,
     "F": 27,
     "mT": 5,
@@ -43,7 +43,7 @@
   },
 
   "tokenizer_params": {
-    "tokenizer_path": "/app/datasets/train/AIHub_bpe_32000.model",
+    "tokenizer_path": "/app/datasets/AIHub_bpe_32000.model",
     "vocab_type": "bpe",
     "vocab_size": 32000
   },
@@ -76,7 +76,7 @@
     "evaluation_dataset": "AIHub",
     "evaluation_dataset_path": "datasets/AIHub/",
 
-    "callback_path": "modules/eff_conformers/callbacks/EfficientConformerCTCSmall/"
+    "callback_path": "/app/modules/eff_conformer/callbacks/EfficientConformerCTCSmall/"
   },
 
   "decoding_params": {
@@ -86,7 +86,7 @@
     "ngram_alpha": 0.3,
     "ngram_beta": 1,
 
-    "lm_config": "modules/eff_conformer/configs/LM-Transformer.json",
+    "lm_config": "/app/modules/eff_conformer/configs/LM-Transformer.json",
     "lm_weight": 1,
     "lm_tmp": 1
   }

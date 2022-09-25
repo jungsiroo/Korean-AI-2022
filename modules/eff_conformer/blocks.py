@@ -152,7 +152,7 @@ class TransformerBlock(nn.Module):
             group_size=1,
             kernel_size=1,
             stride=1,
-            efficient_att=False
+            linear_att=False
         )
 
         # Feed Forward Module

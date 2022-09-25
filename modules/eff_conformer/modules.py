@@ -98,6 +98,7 @@ class AudioPreprocessing(nn.Module):
         # Compute Sequence lengths 
         if x_len is not None:
             x_len = torch.div(x_len, self.hop_length, rounding_mode='floor') + 1
+            # x_len = torch.floor_divide(x_len, self.hop_length)
 
         # Normalize
         if self.normalize:
@@ -141,13 +142,21 @@ class SpecAugment(nn.Module):
             # Frequency Masking
             for _ in range(self.mF):
                 x = torchaudio.transforms.FrequencyMasking(freq_mask_param=self.F, iid_masks=False).forward(x)
-
             # Time Masking
-            for b in range(x.size(0)):
-                T = int(self.pS * x_len[b])
-                for _ in range(self.mT):
-                    x[b, :, :x_len[b]] = torchaudio.transforms.TimeMasking(time_mask_param=T).forward(x[b, :, :x_len[b]])
+            # for b in range(x.size(0)):
+            #     T = int(self.pS * x_len[b])
+            #     for _ in range(self.mT):
+            #         x[b, :, :x_len[b]] = torchaudio.transforms.TimeMasking(time_mask_param=T).forward(x[b, :, :x_len[b]])
+            import numpy as np
+            import random
 
+            time_axis_length = x.size(0)
+            time_mask_para = time_axis_length / 20 
+
+            for _ in range(self.mT):
+                t = int(np.random.uniform(low=0.0, high=time_mask_para))
+            t0 = random.randint(0, time_axis_length - t)
+            x[t0: t0 + t, :] = 0
         return x
 
 ###############################################################################
@@ -194,6 +203,7 @@ class Conv1dSubsampling(nn.Module):
 
             # Update Sequence Lengths
             if x_len is not None:
+                # x_len = torch.floor_divide(x_len-1,2)
                 x_len = torch.div(x_len - 1, 2, rounding_mode='floor') + 1
 
         return x, x_len
@@ -240,6 +250,7 @@ class Conv2dSubsampling(nn.Module):
 
             # Update Sequence Lengths
             if x_len is not None:
+                # x_len = torch.floor_divide(x_len-1,2)
                 x_len = torch.div(x_len - 1, 2, rounding_mode='floor') + 1
 
         # (B, C, D // S, T // S) -> (B,  C * D // S, T // S)
@@ -291,6 +302,7 @@ class Conv2dPoolSubsampling(nn.Module):
 
             # Update Sequence Lengths
             if x_len is not None:
+                # x_len = torch.floor_divide(x_len-1,2)
                 x_len = torch.div(x_len - 1, 2, rounding_mode='floor') + 1
 
         # (B, C, D // S, T // S) -> (B,  C * D // S, T // S)
@@ -347,6 +359,7 @@ class VGGSubsampling(nn.Module):
 
             # Update Sequence Lengths
             if x_len is not None:
+                # x_len = torch.floor_divide(x_len,2) - 1
                 x_len = torch.div(x_len, 2, rounding_mode='floor')
 
         # (B, C, D // S, T // S) -> (B,  C * D // S, T // S)
@@ -589,6 +602,8 @@ class ContextNetSubsampling(nn.Module):
 
         # Update Sequence Lengths
         if x_len is not None:
+            # x_len = torch.floor_divide(x_len-1,2)
+            # x_len = torch.floor_divide(x_len-1,2)
             x_len = torch.div(x_len - 1, 2, rounding_mode='floor') + 1
             x_len = torch.div(x_len - 1, 2, rounding_mode='floor') + 1
 

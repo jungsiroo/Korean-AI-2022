@@ -26,6 +26,7 @@ import glob
 import re
 import os
 import pandas as pd
+from tqdm import tqdm
 from modules.audio.core import *
 
 import nsml
@@ -165,13 +166,15 @@ def create_tokenizer(corpus_p, training_params, tokenizer_params):
         print("Training Tokenizer")
         spm.SentencePieceTrainer.train(
             input=corpus_path, 
-            model_prefix=f"{corpus_p}/train/AIHub_bpe_32000", 
+            model_prefix=f"{corpus_p}/AIHub_bpe_32000", 
             vocab_size=tokenizer_params["vocab_size"], 
             character_coverage=0.9995, 
             model_type=tokenizer_params["vocab_type"], 
-            bos_id=-1, eos_id=-1, unk_surface=""
+            bos_id=-1, eos_id=-1, unk_surface="",
+            minloglevel=1
         )
         print("Training Done")
+
 
 def prepare_dataset(training_params, tokenizer_params, tokenizer):
 
@@ -185,16 +188,20 @@ def prepare_dataset(training_params, tokenizer_params, tokenizer):
 
         data_df = pd.read_csv(f"{DATASET_PATH}/train/train_label")
 
+        # /app/datasets/train/idx_00001.bpe_32000
         for path, trans in data_df.values:
             label_paths.append(f"/app/datasets/train/{path}.{tokenizer_params['vocab_type']}_{str(tokenizer_params['vocab_size'])}")
             sentences.append(sentence_filter(trans))
 
         # Save Labels and lengths
         print("Encoding sequences")
+
         for i, (sentence, label_path) in enumerate(zip(sentences, label_paths)):
-            
             # Print
-            sys.stdout.write("\r{}/{}".format(i, len(label_paths)))
+            # sys.stdout.write("\r{}/{}".format(i, len(label_paths)))
+
+            if i==100:
+                break
 
             # Tokenize and Save label
             label = torch.LongTensor(tokenizer.encode(sentence))
@@ -213,3 +220,5 @@ def prepare_dataset(training_params, tokenizer_params, tokenizer):
             label_length = label.size(0)
             # print(f"SAVING LABEL LEN AT {label_path}_len")
             torch.save(label_length, label_path + "_len")
+
+            print(f"{label.tolist()}@{len(signal)}@{label_length}")

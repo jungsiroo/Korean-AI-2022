@@ -21,7 +21,6 @@ from modules.eff_conformer.model import Model
 
 # Decoder
 from modules.eff_conformer.decoders import (
-    RnnDecoder,
     TransformerDecoder
 )
 
@@ -36,9 +35,7 @@ class LanguageModel(Model):
         super(LanguageModel, self).__init__(tokenizer_params, training_params, decoding_params, name)
 
         # Language Model
-        if lm_params["arch"] == "RNN":
-            self.decoder = RnnDecoder(lm_params)
-        elif lm_params["arch"] == "Transformer":
+        if lm_params["arch"] == "Transformer":
             self.decoder = TransformerDecoder(lm_params)
         else:
             raise Exception("Unknown model architecture:", lm_params["arch"])

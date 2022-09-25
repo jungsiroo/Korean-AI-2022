@@ -70,14 +70,6 @@ def inference(path, model, **kwargs):
 
 def run(args):
 
-    # Distributed Computing
-    if args.distributed:
-        torch.cuda.set_device(args.rank)
-        torch.distributed.init_process_group(
-            backend='nccl', init_method='env://', 
-            world_size=args.world_size, rank=args.rank
-        )
-    
     # Device
     device = torch.device("cuda:" + str(args.rank) if torch.cuda.is_available() else "cpu")
     print("Device:", device)
@@ -101,17 +93,18 @@ def run(args):
     # Create Model
     model = create_model(config).to(device)
 
-    bind_model(model, optimizer=model.optimizer)
+    # Load LM Config
+    with open(config["decoding_params"]["lm_config"]) as json_config:
+        config_lm = json.load(json_config)
+
+        # Create LM
+        model.lm = create_model(config_lm).to(device)
+
+    # bind_model(model, optimizer=model.optimizer)
 
     # Summary
     model.summary(show_dict=args.show_dict)
 
-    # Distribute Strategy
-    if args.distributed:
-        if args.rank == 0:
-            print("Parallelize model on", args.world_size, "GPUs")
-        model.distribute_strategy(args.rank)
-    
     # Parallel Strategy
     if args.parallel and not args.distributed:
         print("Parallelize model on", torch.cuda.device_count(), "GPUs")
@@ -122,7 +115,7 @@ def run(args):
         if args.rank == 0:
             print("Preparing dataset")
             prepare_dataset(config["training_params"], config["tokenizer_params"], model.tokenizer)
-
+            
         if args.distributed:
             torch.distributed.barrier()
 
@@ -136,6 +129,7 @@ def run(args):
         model.fit(
             dataset_train, 
             config["training_params"]["epochs"], 
+            bind_model, 
             dataset_val=dataset_val, 
             val_steps=args.val_steps, 
             verbose_val=args.verbose_val, 
@@ -152,10 +146,10 @@ def run(args):
 
         if args.rank == 0:
             print("Gready Search Evaluation")
-        wer, _, _, _ = model.evaluate(dataset_val, eval_steps=args.val_steps, verbose=args.verbose_val, beam_size=1, eval_loss=args.eval_loss)
+        cer, _, _, _ = model.evaluate(dataset_val, eval_steps=args.val_steps, verbose=args.verbose_val, beam_size=1, eval_loss=args.eval_loss)
         
         if args.rank == 0:
-            print("Geady Search WER : {:.2f}%".format(100 * wer))
+            print("Geady Search CER : {:.2f}%".format(100 * cer))
 
     if args.distributed:
         torch.distributed.destroy_process_group()

@@ -59,7 +59,7 @@ class ModelCTC(Model):
     def forward(self, batch):
 
         # Unpack Batch
-        x, x_len = batch
+        x, _, x_len, _ = batch
 
         # Forward Encoder (B, Taud) -> (B, T, Denc)
         logits, logits_len, attentions = self.encoder(x, x_len)

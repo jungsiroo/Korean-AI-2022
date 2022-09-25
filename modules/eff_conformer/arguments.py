@@ -102,6 +102,7 @@ def get_args():
     args.add_argument("--saving_period", type=int, default=1, help="Model saving every 'n' epochs")
     args.add_argument("--val_period", type=int, default=1, help="Model validation every 'n' epochs")
     args.add_argument("--profiler", action="store_true",help="Enable eval time profiler")
+    args.add_argument("--batch_size_eval",type=int,default=8, help="Evaluation batch size")
 
     config = args.parse_args()
     return config
