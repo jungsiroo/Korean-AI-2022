@@ -116,8 +116,10 @@ def run(args):
             print("Preparing dataset")
             prepare_dataset(config["training_params"], config["tokenizer_params"], model.tokenizer)
             
-        if args.distributed:
-            torch.distributed.barrier()
+    else:
+        if args.rank == 0:
+            print("Load Dataset from CSV")
+            load_data_csv(os.path.join(os.getcwd(), "encode.csv"))
 
     # Load Dataset
     dataset_train, dataset_val = load_datasets(config["training_params"], config["tokenizer_params"], args)

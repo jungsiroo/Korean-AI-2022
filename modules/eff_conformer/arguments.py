@@ -80,7 +80,7 @@ def get_args():
     args.add_argument("--initial_epoch_encoder",type=str,default=None,
     help="Load model encoder from encoder checkpoint")
 
-    args.add_argument("-p", "--prepare_dataset",action="store_false",
+    args.add_argument("-p", "--prepare_dataset",action="store_true",
     help="Prepare dataset for training")
     args.add_argument("-d", "--distributed", action="store_true",)
     args.add_argument("--world_size",type=int,default=torch.cuda.device_count(),help="Number of available GPUs")

@@ -28,6 +28,8 @@ import os
 import pandas as pd
 from tqdm import tqdm
 from modules.audio.core import *
+import pandas as pd
+import json
 
 import nsml
 from nsml import DATASET_PATH
@@ -197,12 +199,6 @@ def prepare_dataset(training_params, tokenizer_params, tokenizer):
         print("Encoding sequences")
 
         for i, (sentence, label_path) in enumerate(zip(sentences, label_paths)):
-            # Print
-            # sys.stdout.write("\r{}/{}".format(i, len(label_paths)))
-
-            if i==100:
-                break
-
             # Tokenize and Save label
             label = torch.LongTensor(tokenizer.encode(sentence))
             # print(f"SAVING ENCODE LABEL AT {label_path}")
@@ -221,4 +217,17 @@ def prepare_dataset(training_params, tokenizer_params, tokenizer):
             # print(f"SAVING LABEL LEN AT {label_path}_len")
             torch.save(label_length, label_path + "_len")
 
-            print(f"{label.tolist()}@{len(signal)}@{label_length}")
+def load_data_csv(csv_path):
+    df = pd.read_csv(csv_path)
+
+    print(f"Loading Label from {csv_path}")
+
+    for i in range(len(df)):
+        label_path, label, audio_len, label_len = df.loc[i]
+        label = torch.LongTensor(json.loads(label))
+        audio_len = int(audio_len)
+        label_len = int(label_len)
+
+        torch.save(label, label_path)
+        torch.save(audio_len, label_path.split(".")[0] + ".pcm_len")
+        torch.save(label_len, label_path + "_len")
