@@ -177,7 +177,7 @@ class Model(nn.Module):
 
         self.is_parallel = True
 
-    def fit(self, dataset_train, epochs, bind_fn, dataset_val=None, val_steps=None, verbose_val=False, initial_epoch=0, callback_path=None, steps_per_epoch=None, mixed_precision=False, accumulated_steps=1, saving_period=1, val_period=1):
+    def fit(self, dataset_train, epochs, bind_fn, dataset_val=None, val_steps=None, verbose_val=False, initial_epoch=0, callback_path=None, steps_per_epoch=None, mixed_precision=False, accumulated_steps=1, saving_period=1, val_period=1, print_every=100):
 
         # Model Device
         device = next(self.parameters()).device
@@ -218,7 +218,8 @@ class Model(nn.Module):
                 # Epoch Init
                 if self.rank == 0:
                     print("Epoch {}/{}".format(epoch + 1, epochs))
-                    epoch_iterator = tqdm(dataset_train, total=steps_per_epoch * accumulated_steps if steps_per_epoch else None)
+                    # epoch_iterator = tqdm(dataset_train, total=steps_per_epoch * accumulated_steps if steps_per_epoch else None)
+                    epoch_iterator = dataset_train
                 else:
                     epoch_iterator = dataset_train
                 epoch_loss = 0.0
@@ -228,7 +229,7 @@ class Model(nn.Module):
 
                 # Epoch training
                 for step, batch in enumerate(epoch_iterator):
-
+                    start = time.time()
                     # Load batch to model device
                     batch = [elt.to(device) for elt in batch]
 
@@ -269,8 +270,9 @@ class Model(nn.Module):
                             self.decoder.apply(lambda m: sample_synaptic_noise(m, self.is_distributed))
 
                     # Step Print
-                    if self.rank == 0:
-                        epoch_iterator.set_description("model step: {} - mean loss {:.4f} - batch loss: {:.4f} - learning rate: {:.6f}".format(self.scheduler.model_step, epoch_loss / (step + 1), loss_mini, self.optimizer.param_groups[0]['lr']))
+                    if self.rank == 0 and step%print_every==1:
+                        # epoch_iterator.set_description("model step: {} - mean loss {:.4f} - batch loss: {:.4f} - learning rate: {:.6f}".format(self.scheduler.model_step, epoch_loss / (step + 1), loss_mini, self.optimizer.param_groups[0]['lr']))
+                        print("model step: {} - mean loss {:.4f} - batch loss: {:.4f} - learning rate: {:.6f} elapsed: {:.2f}h".format(self.scheduler.model_step, epoch_loss / (step + 1), loss_mini, self.optimizer.param_groups[0]['lr'], (time.time()-start)/3600))
 
                     mean_loss = epoch_loss / (step + 1)
                 
@@ -396,7 +398,8 @@ class Model(nn.Module):
 
         # tqdm Iterator
         if self.rank == 0:
-            eval_iterator = tqdm(dataset_eval, total=eval_steps)
+            # eval_iterator = tqdm(dataset_eval, total=eval_steps)
+            eval_iterator = dataset_eval 
         else: 
             eval_iterator = dataset_eval
 
@@ -438,9 +441,11 @@ class Model(nn.Module):
             # Step print
             if self.rank == 0:
                 if eval_loss:
-                    eval_iterator.set_description("mean batch cer {:.2f}% - batch cer: {:.2f}% - mean loss {:.4f} - batch loss: {:.4f}".format(100 * total_cer / (step + 1), 100 * batch_cer, total_loss / (step + 1), batch_loss))
+                    # eval_iterator.set_description("mean batch cer {:.2f}% - batch cer: {:.2f}% - mean loss {:.4f} - batch loss: {:.4f}".format(100 * total_cer / (step + 1), 100 * batch_cer, total_loss / (step + 1), batch_loss))
+                    print("mean batch cer {:.2f}% - batch cer: {:.2f}% - mean loss {:.4f} - batch loss: {:.4f}".format(100 * total_cer / (step + 1), 100 * batch_cer, total_loss / (step + 1), batch_loss))
                 else:
-                    eval_iterator.set_description("mean batch cer {:.2f}% - batch cer: {:.2f}%".format(100 * total_cer / (step + 1), 100 * batch_cer))
+                    # eval_iterator.set_description("mean batch cer {:.2f}% - batch cer: {:.2f}%".format(100 * total_cer / (step + 1), 100 * batch_cer))
+                    print("mean batch cer {:.2f}% - batch cer: {:.2f}%".format(100 * total_cer / (step + 1), 100 * batch_cer))
 
             # Evaluation Steps
             if eval_steps:

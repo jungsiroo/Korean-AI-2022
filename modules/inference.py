@@ -8,7 +8,6 @@ from torch import Tensor
 
 from modules.vocab import KoreanSpeechVocabulary
 from modules.data import load_audio
-from modules.model import DeepSpeech2
 
 
 def parse_audio(audio_path: str, del_silence: bool = False, audio_extension: str = 'pcm') -> Tensor:
@@ -41,3 +40,12 @@ def single_infer(model, audio_path):
     sentence = vocab.label_to_string(y_hats.cpu().detach().numpy())
 
     return sentence
+
+def single_infer_conformer(model, audio_path):
+    device = 'cuda'
+    signal = load_audio(audio_path)
+    waveform = torch.Tensor(signal).unsqueeze(0)
+
+    y_hat = model.gready_search_decoding(waveform.to(device), torch.tensor([len(signal)]).to(device))
+    print(y_hat)
+    return y_hat

@@ -135,7 +135,7 @@ class SpecAugment(nn.Module):
         self.pS = pS
 
     def forward(self, x, x_len):
-
+         
         # Spec Augment
         if self.spec_augment:
         

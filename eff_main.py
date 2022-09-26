@@ -7,14 +7,14 @@ import time
 import json
 import argparse
 import math
-from glob import glob
+import glob
 import numpy as np
 
 
 from modules.eff_conformer.functions import *
 from modules.eff_conformer.utils.preprocessing import * 
 from modules.eff_conformer.arguments import get_args #custom
-from modules.inference import single_infer
+from modules.inference import single_infer, single_infer_conformer
 
 from torch.utils.data import DataLoader
 
@@ -56,13 +56,12 @@ def bind_model(model, optimizer=None):
 
 def inference(path, model, **kwargs):
     model.eval()
-
     results = []
-    for i in glob(os.path.join(path, '*')):
+    for i in glob.glob(os.path.join(path, '*')):
         results.append(
             {
                 'filename': i.split('/')[-1],
-                'text': single_infer(model, i)[0]
+                'text': single_infer_conformer(model, i)[0]
             }
         )
     return sorted(results, key=lambda x: x['filename'])

@@ -51,7 +51,7 @@ class LossCTC(nn.Module):
         super(LossCTC, self).__init__()
 
         # CTC Loss
-        self.loss = nn.CTCLoss(blank=0, reduction="none", zero_infinity=False)
+        self.loss = nn.CTCLoss(blank=0, reduction="mean", zero_infinity=True)
 
     def forward(self, batch, pred):
 
