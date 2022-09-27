@@ -30,6 +30,7 @@ from tqdm import tqdm
 from jiwer.transformations import cer_default_transform
 import os
 import time
+import pprint
 
 import nsml
 from nsml import DATASET_PATH
@@ -270,9 +271,9 @@ class Model(nn.Module):
                             self.decoder.apply(lambda m: sample_synaptic_noise(m, self.is_distributed))
 
                     # Step Print
-                    if self.rank == 0 and step%print_every==1:
+                    # if self.rank == 0 and step%print_every==1:
                         # epoch_iterator.set_description("model step: {} - mean loss {:.4f} - batch loss: {:.4f} - learning rate: {:.6f}".format(self.scheduler.model_step, epoch_loss / (step + 1), loss_mini, self.optimizer.param_groups[0]['lr']))
-                        print("model step: {} - mean loss {:.4f} - batch loss: {:.4f} - learning rate: {:.6f} elapsed: {:.2f}h".format(self.scheduler.model_step, epoch_loss / (step + 1), loss_mini, self.optimizer.param_groups[0]['lr'], (time.time()-start)/3600))
+                        # print("model step: {} - mean loss {:.4f} - batch loss: {:.4f} - learning rate: {:.6f} elapsed: {:.2f}h".format(self.scheduler.model_step, epoch_loss / (step + 1), loss_mini, self.optimizer.param_groups[0]['lr'], (time.time()-start)/3600))
 
                     mean_loss = epoch_loss / (step + 1)
                 
@@ -301,9 +302,9 @@ class Model(nn.Module):
                                 # Evaluate
                                 cer, truths, preds, val_loss = self.evaluate(dataset, val_steps, verbose_val, eval_loss=True)
 
-                                # Print cer
-                                if self.rank == 0:
-                                    print("{} cer : {:.2f}% - loss : {:.4f}".format(dataset_name, 100 * cer, val_loss))
+                                # # Print cer
+                                # if self.rank == 0:
+                                #     print("{} cer : {:.2f}% - loss : {:.4f}".format(dataset_name, 100 * cer, val_loss))
 
                         else:
 
@@ -312,7 +313,11 @@ class Model(nn.Module):
 
                             # Print cer
                             if self.rank == 0:
+                                pprint.pprint(f"GROUND TRUTH : {truths}")
+                                pprint.pprint(f"PREDICTION : {preds}")
+                                print()
                                 print("Val cer : {:.2f}% - Val loss : {:.4f}".format(100 * cer, val_loss))
+
 
                 # Saving Checkpoint
                 if (epoch + 1) % saving_period == 0:
