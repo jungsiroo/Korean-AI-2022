@@ -16,6 +16,8 @@
 import torch
 import torch.nn as nn
 import torchaudio
+import numpy as np
+import random
 
 # Attentions
 from modules.eff_conformer.attentions import (
@@ -135,29 +137,49 @@ class SpecAugment(nn.Module):
         self.pS = pS
 
     def forward(self, x, x_len):
-         
-        # Spec Augment
-        if self.spec_augment:
+        new_x = None
+        for i, minix in enumerate(x):
+            minix = minix.unsqueeze(0)
+            if i == 0:
+                new_x = minix
+                continue
+
+            if i == 2:
+                minix = torchaudio.transforms.FrequencyMasking(freq_mask_param=self.F, iid_masks=False).forward(minix)
+             
+                time_axis_length = minix.size(2)
+                time_mask_para = time_axis_length / 20 
+
+                for _ in range(self.mT):
+                    t = int(np.random.uniform(low=0.0, high=time_mask_para))
+                    t0 = random.randint(0, time_axis_length - t)
+                    minix[:, :, t0: t0 + t] = 0
+            print(minix.shape)
+            new_x = torch.cat((new_x, minix), 0)
+        return new_x
+
+        # # Spec Augment
+        # if self.spec_augment:
         
-            # Frequency Masking
-            for _ in range(self.mF):
-                x = torchaudio.transforms.FrequencyMasking(freq_mask_param=self.F, iid_masks=False).forward(x)
-            # Time Masking
-            # for b in range(x.size(0)):
-            #     T = int(self.pS * x_len[b])
-            #     for _ in range(self.mT):
-            #         x[b, :, :x_len[b]] = torchaudio.transforms.TimeMasking(time_mask_param=T).forward(x[b, :, :x_len[b]])
-            import numpy as np
-            import random
+        #     # Frequency Masking
+        #     for _ in range(self.mF):
+        #         x = torchaudio.transforms.FrequencyMasking(freq_mask_param=self.F, iid_masks=False).forward(x)
+        #     # Time Masking
+        #     # for b in range(x.size(0)):
+        #     #     T = int(self.pS * x_len[b])
+        #     #     for _ in range(self.mT):
+        #     #         x[b, :, :x_len[b]] = torchaudio.transforms.TimeMasking(time_mask_param=T).forward(x[b, :, :x_len[b]])
+        #     import numpy as np
+        #     import random
 
-            time_axis_length = x.size(0)
-            time_mask_para = time_axis_length / 20 
+        #     time_axis_length = x.size(0)
+        #     time_mask_para = time_axis_length / 20 
 
-            for _ in range(self.mT):
-                t = int(np.random.uniform(low=0.0, high=time_mask_para))
-            t0 = random.randint(0, time_axis_length - t)
-            x[t0: t0 + t, :] = 0
-        return x
+        #     for _ in range(self.mT):
+        #         t = int(np.random.uniform(low=0.0, high=time_mask_para))
+        #     t0 = random.randint(0, time_axis_length - t)
+        #     x[t0: t0 + t, :] = 0
+        return new_x
 
 ###############################################################################
 # Conv Subsampling Modules
