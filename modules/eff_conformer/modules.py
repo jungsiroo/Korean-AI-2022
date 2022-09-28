@@ -154,7 +154,7 @@ class SpecAugment(nn.Module):
                     t = int(np.random.uniform(low=0.0, high=time_mask_para))
                     t0 = random.randint(0, time_axis_length - t)
                     minix[:, :, t0: t0 + t] = 0
-            print(minix.shape)
+
             new_x = torch.cat((new_x, minix), 0)
         return new_x
 
