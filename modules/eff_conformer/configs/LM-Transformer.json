@@ -8,7 +8,7 @@
     "dim_model": 768,
     "ff_ratio": 4,
     "num_heads": 12,
-    "vocab_size": 1000,
+    "vocab_size": 32000,
     "relative_pos_enc": true,
     "max_pos_encoding": 2048,
     "Pdrop": 0.1
@@ -17,7 +17,7 @@
   "tokenizer_params": {
     "tokenizer_path": "/app/datasets/AIHub_bpe_32000.model",
     "vocab_type": "bpe",
-    "vocab_size": 1000
+    "vocab_size": 32000
   },
 
   "training_params": {
@@ -47,7 +47,8 @@
 
     "evaluation_dataset": "AIHub",
     "evaluation_dataset_path": "datasets/AIHub/",
-    "lm_mode": true,
+    "lm_mode": false
+    ,
 
     "callback_path": "/app/modules/eff_conformer/callbacks/EfficientConformerCTCSmall/"
   },

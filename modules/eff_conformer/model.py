@@ -251,6 +251,7 @@ class Model(nn.Module):
                         loss = loss_mini / accumulated_steps
 
                     # Accumulate gradients
+                    loss.to(device)
                     scaler.scale(loss).backward()
 
                     # Update Epoch Variables
@@ -274,6 +275,10 @@ class Model(nn.Module):
                             self.decoder.apply(lambda m: sample_synaptic_noise(m, self.is_distributed))
 
                     # Step Print
+                    if step % 100 == 0:
+                        epoch_iterator.set_description("model step: {} - mean loss {:.4f} - batch loss: {:.4f} - learning rate: {:.6f}".format(self.scheduler.model_step, epoch_loss / (step + 1), loss_mini, self.optimizer.param_groups[0]['lr']))
+                        print("model step: {} - mean loss {:.4f} - batch loss: {:.4f} - learning rate: {:.6f} elapsed: {:.2f}h".format(self.scheduler.model_step, epoch_loss / (step + 1), loss_mini, self.optimizer.param_groups[0]['lr'], (time.time()-start)/3600))
+
                     # if self.rank == 0 and step%print_every==1:
                         # epoch_iterator.set_description("model step: {} - mean loss {:.4f} - batch loss: {:.4f} - learning rate: {:.6f}".format(self.scheduler.model_step, epoch_loss / (step + 1), loss_mini, self.optimizer.param_groups[0]['lr']))
                         # print("model step: {} - mean loss {:.4f} - batch loss: {:.4f} - learning rate: {:.6f} elapsed: {:.2f}h".format(self.scheduler.model_step, epoch_loss / (step + 1), loss_mini, self.optimizer.param_groups[0]['lr'], (time.time()-start)/3600))
