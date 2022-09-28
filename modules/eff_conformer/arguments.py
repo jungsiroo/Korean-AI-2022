@@ -68,7 +68,7 @@ def get_args():
     args.add_argument("--rank", type=int, default=0)
 
     args.add_argument("-c", "--config_file",type=str,
-    default="modules/eff_conformer/configs/EfficientConformerCTCSmall.json",
+    default="modules/eff_conformer/configs/EfficientConformerTransducerSmall.json",
     help="Json configuration file containing model hyperparameters")
 
     args.add_argument("-i", "--initial_epoch",type=int,default=0,
@@ -82,7 +82,7 @@ def get_args():
 
     args.add_argument("-p", "--prepare_dataset",action="store_true",
     help="Prepare dataset for training")
-    args.add_argument("-d", "--distributed", action="store_true",)
+    args.add_argument("-d", "--distributed", action="store_true")
     args.add_argument("--world_size",type=int,default=torch.cuda.device_count(),help="Number of available GPUs")
     args.add_argument("--create_tokenizer",action="store_false",help="Create model tokenizer")
     args.add_argument("--verbose_val",action="store_true",help="Evaluation verbose")

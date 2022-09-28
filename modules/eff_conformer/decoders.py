@@ -47,11 +47,12 @@ class RnnDecoder(nn.Module):
         self.rnn = LSTM(input_size=params["dim_model"], hidden_size=params["dim_model"], num_layers=params["num_layers"], batch_first=True, bidirectional=False)
 
     def forward(self, y, hidden, y_len=None):
-
+        total_length = y.size(1)
         # Sequence Embedding (B, U + 1) -> (N, U + 1, D)
         y = self.embedding(y)
 
         # Pack padded batch sequences
+        # y_len[0] = y.shape[1]
         if y_len is not None:
             y = nn.utils.rnn.pack_padded_sequence(y, y_len.cpu(), batch_first=True, enforce_sorted=False)
 
@@ -64,7 +65,7 @@ class RnnDecoder(nn.Module):
 
         # Pad packed batch sequences
         if y_len is not None:
-            y, _ = nn.utils.rnn.pad_packed_sequence(y, batch_first=True)
+            y, _ = nn.utils.rnn.pad_packed_sequence(y, batch_first=True, total_length=total_length)
 
         # return last layer steps outputs and every layer last step hidden state
         return y, hidden

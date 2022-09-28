@@ -47,5 +47,4 @@ def single_infer_conformer(model, audio_path):
     waveform = torch.Tensor(signal).unsqueeze(0)
 
     y_hat = model.gready_search_decoding(waveform.to(device), torch.tensor([len(signal)]).to(device))
-    print(y_hat)
     return y_hat

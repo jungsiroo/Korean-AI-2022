@@ -13,7 +13,6 @@
 # limitations under the License.
 
 # PyTorch
-from pickletools import optimize
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -31,6 +30,7 @@ from jiwer.transformations import cer_default_transform
 import os
 import time
 import pprint
+import random
 
 import nsml
 from nsml import DATASET_PATH
@@ -179,6 +179,8 @@ class Model(nn.Module):
         self.is_parallel = True
 
     def fit(self, dataset_train, epochs, bind_fn, dataset_val=None, val_steps=None, verbose_val=False, initial_epoch=0, callback_path=None, steps_per_epoch=None, mixed_precision=False, accumulated_steps=1, saving_period=1, val_period=1, print_every=100):
+        gt_list = None
+        pred_list = None
 
         # Model Device
         device = next(self.parameters()).device
@@ -211,6 +213,7 @@ class Model(nn.Module):
         try:
             # Training Loop
             for epoch in range(initial_epoch, epochs):
+                rand_int = random.randint(0, 3000)
 
                 # Sync sampler if distributed
                 if self.is_distributed:
@@ -229,7 +232,7 @@ class Model(nn.Module):
                 self.train()
 
                 # Epoch training
-                for step, batch in enumerate(epoch_iterator):
+                for step, batch in enumerate(tqdm(epoch_iterator)):
                     start = time.time()
                     # Load batch to model device
                     batch = [elt.to(device) for elt in batch]
@@ -307,17 +310,18 @@ class Model(nn.Module):
                                 #     print("{} cer : {:.2f}% - loss : {:.4f}".format(dataset_name, 100 * cer, val_loss))
 
                         else:
-
                             # Evaluate
                             cer, truths, preds, val_loss = self.evaluate(dataset_val, val_steps, verbose_val, eval_loss=True)
-
+                            if step == rand_int:
+                                gt_list = truths
+                                pred_list = preds
                             # Print cer
                             if self.rank == 0:
-                                pprint.pprint(f"GROUND TRUTH : {truths}")
-                                pprint.pprint(f"PREDICTION : {preds}")
                                 print()
                                 print("Val cer : {:.2f}% - Val loss : {:.4f}".format(100 * cer, val_loss))
 
+                print(f"GROUND TRUTH : {gt_list[:3]}")
+                print(f"PREDICTION : {pred_list[:3]}")
 
                 # Saving Checkpoint
                 if (epoch + 1) % saving_period == 0:
@@ -444,13 +448,13 @@ class Model(nn.Module):
                     total_loss += batch_loss
 
             # Step print
-            if self.rank == 0:
-                if eval_loss:
-                    # eval_iterator.set_description("mean batch cer {:.2f}% - batch cer: {:.2f}% - mean loss {:.4f} - batch loss: {:.4f}".format(100 * total_cer / (step + 1), 100 * batch_cer, total_loss / (step + 1), batch_loss))
-                    print("mean batch cer {:.2f}% - batch cer: {:.2f}% - mean loss {:.4f} - batch loss: {:.4f}".format(100 * total_cer / (step + 1), 100 * batch_cer, total_loss / (step + 1), batch_loss))
-                else:
-                    # eval_iterator.set_description("mean batch cer {:.2f}% - batch cer: {:.2f}%".format(100 * total_cer / (step + 1), 100 * batch_cer))
-                    print("mean batch cer {:.2f}% - batch cer: {:.2f}%".format(100 * total_cer / (step + 1), 100 * batch_cer))
+            # if self.rank == 0:
+            #     if eval_loss:
+            #         # eval_iterator.set_description("mean batch cer {:.2f}% - batch cer: {:.2f}% - mean loss {:.4f} - batch loss: {:.4f}".format(100 * total_cer / (step + 1), 100 * batch_cer, total_loss / (step + 1), batch_loss))
+            #         print("mean batch cer {:.2f}% - batch cer: {:.2f}% - mean loss {:.4f} - batch loss: {:.4f}".format(100 * total_cer / (step + 1), 100 * batch_cer, total_loss / (step + 1), batch_loss))
+            #     else:
+            #         # eval_iterator.set_description("mean batch cer {:.2f}% - batch cer: {:.2f}%".format(100 * total_cer / (step + 1), 100 * batch_cer))
+            #         print("mean batch cer {:.2f}% - batch cer: {:.2f}%".format(100 * total_cer / (step + 1), 100 * batch_cer))
 
             # Evaluation Steps
             if eval_steps:

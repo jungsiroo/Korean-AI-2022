@@ -53,7 +53,6 @@ def inference(path, model, **kwargs):
     print(path)
     results = []
     for i in glob.glob(os.path.join(path, '*')):
-        print(i)
         results.append(
             {
                 'filename': i.split('/')[-1],

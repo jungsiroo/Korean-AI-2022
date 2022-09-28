@@ -15,35 +15,47 @@
 # PyTorch
 import torch
 import torch.nn as nn
-
+import torchaudio
 # RNN-T Loss
 # import warp_rnnt
 
-# class LossRNNT(nn.Module):
+class LossRNNT(nn.Module):
 
-#     def __init__(self):
-#         super(LossRNNT, self).__init__()
+    def __init__(self):
+        super(LossRNNT, self).__init__()
 
-#     def forward(self, batch, pred):
+    def forward(self, batch, pred):
 
-#         # Unpack Batch
-#         x, y, x_len, y_len = batch
+        # Unpack Batch
+        x, y, x_len, y_len = batch
 
-#         # Unpack Predictions
-#         outputs_pred, f_len, _ = pred
+        # Unpack Predictions
+        outputs_pred, f_len, _ = pred
 
-#         # Compute Loss
-#         loss = warp_rnnt.rnnt_loss(
-#             log_probs=torch.nn.functional.log_softmax(outputs_pred, dim=-1),
-#             labels=y.int(),
-#             frames_lengths=f_len.int(),
-#             labels_lengths=y_len.int(),
-#             average_frames=False,
-#             reduction='mean',
-#             blank=0,
-#             gather=True)
+        transform = torchaudio.transforms.RNNTLoss(
+            blank=0,
+            reduction='mean'
+        )
+        # Compute Loss
+        # loss = warp_rnnt.rnnt_loss(
+        #     log_probs=torch.nn.functional.log_softmax(outputs_pred, dim=-1),
+        #     labels=y.int(),
+        #     frames_lengths=f_len.int(),
+        #     labels_lengths=y_len.int(),
+        #     average_frames=False,
+        #     reduction='mean',
+        #     blank=0,
+        #     gather=True)
 
-#         return loss
+        loss = transform(
+            logits=outputs_pred,
+            # logits=torch.nn.functional.log_softmax(outputs_pred, dim=-1),
+            targets=y.int(),
+            logit_lengths=f_len.int(),
+            target_lengths=y_len.int()
+        )
+
+        return loss
 
 class LossCTC(nn.Module):
 

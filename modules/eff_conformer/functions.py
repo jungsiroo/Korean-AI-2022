@@ -17,6 +17,7 @@ import torch
 
 # Models
 from modules.eff_conformer.model_ctc import ModelCTC, InterCTC
+from modules.eff_conformer.transducer import Transducer
 from modules.eff_conformer.lm import LanguageModel
 
 # Datasets
@@ -35,7 +36,19 @@ import glob
 
 def create_model(config):
 
-    if config["model_type"] == "CTC":
+    if config["model_type"] == "Transducer":
+
+        model = Transducer(
+            encoder_params=config["encoder_params"],
+            decoder_params=config["decoder_params"],
+            joint_params=config["joint_params"],
+            tokenizer_params=config["tokenizer_params"],
+            training_params=config["training_params"],
+            decoding_params=config["decoding_params"],
+            name=config["model_name"]
+        )
+
+    elif config["model_type"] == "CTC":
 
         model = ModelCTC(
             encoder_params=config["encoder_params"],

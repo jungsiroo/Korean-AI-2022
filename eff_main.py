@@ -22,6 +22,7 @@ import nsml
 from nsml import DATASET_PATH
 
 def seed_fix(seed): #시드 고정 함수
+    os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
